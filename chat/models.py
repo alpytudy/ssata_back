@@ -4,9 +4,9 @@ from django.conf import settings
 
 # Create your models here.
 class Chat_room(models.Model):
-    user1=models.IntegerField()
+    user1=models.IntegerField(null=True, blank=True)
     user1_quit=models.BooleanField(default=False)
-    user2=models.IntegerField()
+    user2=models.IntegerField(null=True, blank=True)
     user2_quit=models.BooleanField(default=False)
     created_at=models.DateTimeField(auto_now_add=True)
 

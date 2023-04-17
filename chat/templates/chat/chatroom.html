@@ -1,8 +1,3 @@
-{% extends 'base.html' %}
-{% block content %}
-<h1>INDEX</h1>
-<a href="{% url 'chat:create' %}">매칭하기</a><br>
-
 <!DOCTYPE html>
 <html>
 <head>
@@ -50,7 +45,6 @@
         })
 
     </script>
+    <a href="{% url 'chat:quit' %}">채팅방 나가기</a>
 </body>
 </html>
-
-{% endblock content %}

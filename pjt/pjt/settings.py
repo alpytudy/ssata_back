@@ -35,6 +35,10 @@ INSTALLED_APPS = [
     'articles',
     'accounts',
     'chat',
+    # 3rd-party app
+    'rest_framework',
+    'django_seed',
+    'psycopg2',
     # django app
     'django.contrib.admin',
     'django.contrib.auth',

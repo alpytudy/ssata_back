@@ -35,6 +35,10 @@ INSTALLED_APPS = [
     'accounts',
     'articles',
     'chat',
+    'apitest',
+    'rest_framework',
+    'django_seed',
+    'psycopg2',
     'corsheaders',
     'django.contrib.admin',
     'django.contrib.auth',
@@ -45,8 +49,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    'corsheaders.middleware.CorsMiddleware',
-    'django.middleware.security.SecurityMiddleware',
+    'corsheaders.middleware.CorsMiddleware', # <- 가능한 높게 위치시켜야 한다.
+    'django.middleware.common.CommonMiddleware', 
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -134,10 +138,4 @@ AUTH_USER_MODEL = 'accounts.User'
 
 
 
-CORS_ORIGIN_ALLOW_ALL = False
-
-CORS_ORIGIN_WHITELIST = (
-    'http://localhost:8080',
-    'http://127.0.0.1:8080',
-)
-    
+CORS_ORIGIN_ALLOW_ALL = True
