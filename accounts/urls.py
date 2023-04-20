@@ -9,6 +9,6 @@ urlpatterns = [
     path('delete/',views.delete,name='delete'),
     path('update/',views.update,name='update'),
     path('password/',views.change_password,name='change_password'),
-    path('profile/<str:username>/', views.profile, name='profile'),
-    path('<int:user_pk>/follow/', views.follow, name='follow'), 
+    # path('profile/<str:username>/', views.profile, name='profile'),   #회원프로필 생성
+    # path('<int:user_pk>/follow/', views.follow, name='follow'),    # 팔로잉 기능 생성
 ]

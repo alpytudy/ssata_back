@@ -1,35 +1,117 @@
-import json
-from channels.generic.websocket import WebsocketConsumer
 from asgiref.sync import async_to_sync
+from channels.generic.websocket import JsonWebsocketConsumer
 
-class ChatConsumer(WebsocketConsumer):
+from chat.models import Room, RoomLog, MessageLog
+
+
+class ChatConsumer(JsonWebsocketConsumer):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.group_name = ""
+        self.room = None
+
     def connect(self):
-        self.room_group_name = 'test'
+        user = self.scope["user"]
 
-        async_to_sync(self.channel_layer.group_add)(
-            self.room_group_name,
-            self.channel_name
-        )
+        if not user.is_authenticated:
+            self.close()
+        else:
+            room_pk = self.scope["url_route"]["kwargs"]["room_pk"]
 
-        self.accept()
-   
+            try:
+                self.room = Room.objects.get(pk=room_pk)
+            except Room.DoesNotExist:
+                self.close()
+            else:
+                self.group_name = self.room.chat_group_name
 
-    def receive(self, text_data):
-        text_data_json = json.loads(text_data)
-        message = text_data_json['message']
+                is_new_join = self.room.user_join(self.channel_name, user)
+                if is_new_join:
+                    async_to_sync(self.channel_layer.group_send)(
+                        self.group_name,
+                        {
+                            "type": "chat.user.join",
+                            "username": user.username,
+                        }
+                    )
+                async_to_sync(self.channel_layer.group_add)(
+                    self.group_name,
+                    self.channel_name,
+                )
 
-        async_to_sync(self.channel_layer.group_send)(
-            self.room_group_name,
-            {
-                'type':'chat_message',
-                'message':message
-            }
-        )
+                self.accept()
 
-    def chat_message(self, event):
-        message = event['message']
+    def disconnect(self, code):
+        if self.group_name:
+            async_to_sync(self.channel_layer.group_discard)(
+                self.group_name,
+                self.channel_name,
+            )
 
-        self.send(text_data=json.dumps({
-            'type':'chat',
-            'message':message
-        }))
+        user = self.scope["user"]
+
+        if self.room is not None:
+            is_last_leave = self.room.user_leave(self.channel_name, user)
+            if is_last_leave:
+                async_to_sync(self.channel_layer.group_send)(
+                    self.group_name,
+                    {
+                        "type": "chat.user.leave",
+                        "username": user.username,
+                    }
+                )
+
+    def receive_json(self, content, **kwargs):
+        user = self.scope["user"]
+        _type = content["type"]
+        if _type == "chat.message":
+            sender = user.username
+            message = content["message"]
+            async_to_sync(self.channel_layer.group_send)(
+                self.group_name,
+                {
+                    "type": "chat.message",
+                    "message": message,
+                    "sender": sender,
+                    "user": user.pk,
+                }
+            )
+            global sent
+            sent = 0
+        else:
+            print(f"Invalid message type : ${_type}")
+
+    def chat_user_join(self, message_dict):
+        # roomlog = RoomLog.objects.get(pk=self.room.pk)
+        # roomlog.the_other = message_dict['user']
+        # roomlog.save() 
+        self.send_json({
+            "type": "chat.user.join",
+            "username": message_dict["username"],
+        })
+
+    def chat_user_leave(self, message_dict):
+        self.send_json({
+            "type": "chat.user.leave",
+            "username": message_dict["username"],
+        })
+
+    def chat_message(self, message_dict):
+        self.send_json({
+            "type": "chat.message",
+            "message": message_dict["message"],
+            "sender": message_dict["sender"],
+        })
+        global sent
+        if not sent:
+            room = RoomLog.objects.get(pk=self.room.pk)
+            user = message_dict["user"]
+            sender = message_dict["sender"]
+            message = message_dict["message"]
+            messagelog = MessageLog(room=room, user=user, sender=sender, message=message)
+            messagelog.save()
+            sent = 1
+
+    def chat_room_deleted(self, message_dict):
+        custom_code = 4000
+        self.close(code=custom_code)
